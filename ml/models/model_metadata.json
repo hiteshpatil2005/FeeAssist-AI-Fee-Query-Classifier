@@ -1,0 +1,602 @@
+{
+  "timestamp": "2026-09-20T16:30:25.364716",
+  "dataset_total_samples": 405,
+  "train_samples": 324,
+  "test_samples": 81,
+  "classes": [
+    "DUE_DATE",
+    "FEE_STRUCTURE",
+    "INSTALLMENT",
+    "OTHER_FEE_QUERY",
+    "PAYMENT_HISTORY",
+    "PAYMENT_STATUS",
+    "PENDING_FEE",
+    "RECEIPT",
+    "REFUND",
+    "SCHOLARSHIP"
+  ],
+  "champion_model": "Logistic Regression",
+  "selection_metric": "macro_f1",
+  "champion_metrics": {
+    "accuracy": 0.5802469135802469,
+    "macro_f1": 0.5580623724101985,
+    "weighted_f1": 0.5594031661664512,
+    "macro_precision": 0.5802380952380951,
+    "macro_recall": 0.5805555555555555
+  },
+  "all_benchmarks": {
+    "Multinomial Naive Bayes": {
+      "accuracy": 0.5061728395061729,
+      "macro_precision": 0.5277350427350427,
+      "macro_recall": 0.5083333333333333,
+      "macro_f1": 0.49049630108453635,
+      "weighted_f1": 0.49013879689260953,
+      "confusion_matrix": [
+        [
+          3,
+          0,
+          0,
+          0,
+          0,
+          3,
+          1,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          0,
+          2,
+          0,
+          0,
+          3,
+          0,
+          2
+        ],
+        [
+          2,
+          1,
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          1,
+          3,
+          0,
+          2,
+          0,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          0,
+          5,
+          1,
+          0,
+          0,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          1,
+          5,
+          1,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          2,
+          1,
+          0,
+          1,
+          0,
+          3,
+          0,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          7,
+          0,
+          1
+        ],
+        [
+          1,
+          0,
+          2,
+          1,
+          0,
+          1,
+          0,
+          0,
+          3,
+          1
+        ],
+        [
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          6
+        ]
+      ],
+      "per_class": {
+        "DUE_DATE": {
+          "precision": 0.5,
+          "recall": 0.375,
+          "f1_score": 0.42857142857142855,
+          "support": 8
+        },
+        "FEE_STRUCTURE": {
+          "precision": 0.16666666666666666,
+          "recall": 0.125,
+          "f1_score": 0.14285714285714285,
+          "support": 8
+        },
+        "INSTALLMENT": {
+          "precision": 0.5,
+          "recall": 0.625,
+          "f1_score": 0.5555555555555556,
+          "support": 8
+        },
+        "OTHER_FEE_QUERY": {
+          "precision": 0.75,
+          "recall": 0.375,
+          "f1_score": 0.5,
+          "support": 8
+        },
+        "PAYMENT_HISTORY": {
+          "precision": 0.5555555555555556,
+          "recall": 0.625,
+          "f1_score": 0.5882352941176471,
+          "support": 8
+        },
+        "PAYMENT_STATUS": {
+          "precision": 0.4166666666666667,
+          "recall": 0.625,
+          "f1_score": 0.5,
+          "support": 8
+        },
+        "PENDING_FEE": {
+          "precision": 0.6,
+          "recall": 0.375,
+          "f1_score": 0.46153846153846156,
+          "support": 8
+        },
+        "RECEIPT": {
+          "precision": 0.5384615384615384,
+          "recall": 0.875,
+          "f1_score": 0.6666666666666666,
+          "support": 8
+        },
+        "REFUND": {
+          "precision": 0.75,
+          "recall": 0.3333333333333333,
+          "f1_score": 0.46153846153846156,
+          "support": 9
+        },
+        "SCHOLARSHIP": {
+          "precision": 0.5,
+          "recall": 0.75,
+          "f1_score": 0.6,
+          "support": 8
+        }
+      }
+    },
+    "Logistic Regression": {
+      "accuracy": 0.5802469135802469,
+      "macro_precision": 0.5802380952380951,
+      "macro_recall": 0.5805555555555555,
+      "macro_f1": 0.5580623724101985,
+      "weighted_f1": 0.5594031661664512,
+      "confusion_matrix": [
+        [
+          3,
+          0,
+          0,
+          0,
+          0,
+          3,
+          1,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          0,
+          2,
+          0,
+          1,
+          2,
+          0,
+          2
+        ],
+        [
+          2,
+          0,
+          6,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          1,
+          3,
+          0,
+          2,
+          0,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          0,
+          4,
+          2,
+          0,
+          0,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          7,
+          0,
+          1,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          1,
+          0,
+          1,
+          0,
+          5,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          7,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          1,
+          2,
+          0,
+          1,
+          0,
+          0,
+          5,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          6
+        ]
+      ],
+      "per_class": {
+        "DUE_DATE": {
+          "precision": 0.5,
+          "recall": 0.375,
+          "f1_score": 0.42857142857142855,
+          "support": 8
+        },
+        "FEE_STRUCTURE": {
+          "precision": 0.3333333333333333,
+          "recall": 0.125,
+          "f1_score": 0.18181818181818182,
+          "support": 8
+        },
+        "INSTALLMENT": {
+          "precision": 0.6,
+          "recall": 0.75,
+          "f1_score": 0.6666666666666666,
+          "support": 8
+        },
+        "OTHER_FEE_QUERY": {
+          "precision": 0.6,
+          "recall": 0.375,
+          "f1_score": 0.46153846153846156,
+          "support": 8
+        },
+        "PAYMENT_HISTORY": {
+          "precision": 0.5714285714285714,
+          "recall": 0.5,
+          "f1_score": 0.5333333333333333,
+          "support": 8
+        },
+        "PAYMENT_STATUS": {
+          "precision": 0.4666666666666667,
+          "recall": 0.875,
+          "f1_score": 0.6086956521739131,
+          "support": 8
+        },
+        "PENDING_FEE": {
+          "precision": 0.7142857142857143,
+          "recall": 0.625,
+          "f1_score": 0.6666666666666666,
+          "support": 8
+        },
+        "RECEIPT": {
+          "precision": 0.5833333333333334,
+          "recall": 0.875,
+          "f1_score": 0.7,
+          "support": 8
+        },
+        "REFUND": {
+          "precision": 0.8333333333333334,
+          "recall": 0.5555555555555556,
+          "f1_score": 0.6666666666666666,
+          "support": 9
+        },
+        "SCHOLARSHIP": {
+          "precision": 0.6,
+          "recall": 0.75,
+          "f1_score": 0.6666666666666666,
+          "support": 8
+        }
+      }
+    },
+    "Support Vector Machine (Calibrated)": {
+      "accuracy": 0.5555555555555556,
+      "macro_precision": 0.5663961038961038,
+      "macro_recall": 0.5541666666666667,
+      "macro_f1": 0.5360304169514695,
+      "weighted_f1": 0.5386720167421921,
+      "confusion_matrix": [
+        [
+          4,
+          0,
+          0,
+          0,
+          0,
+          3,
+          0,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          1,
+          1,
+          0,
+          2,
+          0,
+          1,
+          1,
+          0,
+          2
+        ],
+        [
+          2,
+          0,
+          6,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          1,
+          2,
+          0,
+          2,
+          0,
+          1,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          1,
+          0,
+          4,
+          2,
+          0,
+          0,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          1,
+          4,
+          2,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          0,
+          1,
+          0,
+          5,
+          0,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          7,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0,
+          6,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          6
+        ]
+      ],
+      "per_class": {
+        "DUE_DATE": {
+          "precision": 0.6666666666666666,
+          "recall": 0.5,
+          "f1_score": 0.5714285714285714,
+          "support": 8
+        },
+        "FEE_STRUCTURE": {
+          "precision": 0.3333333333333333,
+          "recall": 0.125,
+          "f1_score": 0.18181818181818182,
+          "support": 8
+        },
+        "INSTALLMENT": {
+          "precision": 0.5454545454545454,
+          "recall": 0.75,
+          "f1_score": 0.631578947368421,
+          "support": 8
+        },
+        "OTHER_FEE_QUERY": {
+          "precision": 0.6666666666666666,
+          "recall": 0.25,
+          "f1_score": 0.36363636363636365,
+          "support": 8
+        },
+        "PAYMENT_HISTORY": {
+          "precision": 0.5,
+          "recall": 0.5,
+          "f1_score": 0.5,
+          "support": 8
+        },
+        "PAYMENT_STATUS": {
+          "precision": 0.3333333333333333,
+          "recall": 0.5,
+          "f1_score": 0.4,
+          "support": 8
+        },
+        "PENDING_FEE": {
+          "precision": 0.625,
+          "recall": 0.625,
+          "f1_score": 0.625,
+          "support": 8
+        },
+        "RECEIPT": {
+          "precision": 0.6363636363636364,
+          "recall": 0.875,
+          "f1_score": 0.7368421052631579,
+          "support": 8
+        },
+        "REFUND": {
+          "precision": 0.8571428571428571,
+          "recall": 0.6666666666666666,
+          "f1_score": 0.75,
+          "support": 9
+        },
+        "SCHOLARSHIP": {
+          "precision": 0.5,
+          "recall": 0.75,
+          "f1_score": 0.6,
+          "support": 8
+        }
+      }
+    }
+  }
+}
