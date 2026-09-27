@@ -1,0 +1,204 @@
+{
+  "auth_login": {
+    "token_type": "bearer",
+    "access_token_prefix": "eyJhbGciOiJIUzI1NiIsInR5c..."
+  },
+  "auth_me": {
+    "id": 3,
+    "name": "Aarav Sharma",
+    "email": "demo@feeassist.ai",
+    "preferred_language": "English",
+    "course": "B.Tech Computer Science",
+    "year": 3,
+    "semester": 5,
+    "created_at": "2026-09-20T07:06:34.382970Z"
+  },
+  "fees_summary": {
+    "total_fee": 145000.0,
+    "paid_amount": 120000.0,
+    "pending_amount": 25000.0,
+    "scholarship_amount": 25000.0,
+    "due_date": "2026-11-15",
+    "academic_year": "2024-25",
+    "semester": 4,
+    "record_count": 2
+  },
+  "fees_list": [
+    {
+      "id": 6,
+      "user_id": 3,
+      "academic_year": "2025-26",
+      "semester": 5,
+      "course": null,
+      "total_fee": 75000.0,
+      "paid_amount": 50000.0,
+      "pending_amount": 25000.0,
+      "scholarship_amount": 10000.0,
+      "due_date": "2026-11-15",
+      "fee_type": "Tuition",
+      "notes": null,
+      "created_at": "2026-09-20T07:06:34.390170Z",
+      "updated_at": "2026-09-20T07:06:34.390170Z"
+    },
+    {
+      "id": 5,
+      "user_id": 3,
+      "academic_year": "2024-25",
+      "semester": 4,
+      "course": null,
+      "total_fee": 70000.0,
+      "paid_amount": 70000.0,
+      "pending_amount": 0.0,
+      "scholarship_amount": 15000.0,
+      "due_date": "2025-04-30",
+      "fee_type": "Tuition",
+      "notes": null,
+      "created_at": "2026-09-20T07:06:34.390170Z",
+      "updated_at": "2026-09-20T07:06:34.390170Z"
+    }
+  ],
+  "payments_list": [
+    {
+      "id": 5,
+      "amount": 50000.0,
+      "payment_date": "2025-08-20",
+      "fee_type": "Tuition Fee (Installment 1)",
+      "payment_method": "UPI",
+      "transaction_id": "TXN192847192",
+      "status": "completed",
+      "created_at": "2026-09-20T07:06:34.390170Z"
+    },
+    {
+      "id": 4,
+      "amount": 70000.0,
+      "payment_date": "2025-01-15",
+      "fee_type": "Tuition & Exam Fee",
+      "payment_method": "Net Banking",
+      "transaction_id": "TXN984210482",
+      "status": "completed",
+      "created_at": "2026-09-20T07:06:34.390170Z"
+    }
+  ],
+  "chat_english": {
+    "message": "Your outstanding fee balance is **₹25,000.00** due by **November 15, 2026**.\n\n**Fee Breakdown (Semester 5, AY 2025-26)**:\n• Total Applicable Fee: ₹75,000.00\n• Paid Amount: ₹50,000.00\n• Scholarship / Concession: ₹10,000.00\n• **Remaining Balance: ₹25,000.00**",
+    "intent": "PENDING_FEE",
+    "confidence": 0.3516,
+    "detected_language": "en",
+    "fallback_used": false,
+    "source": "ml",
+    "entities": {
+      "semester": 5,
+      "academic_year": null,
+      "fee_type": null,
+      "last_intent": null,
+      "is_hypothetical": false
+    },
+    "session_id": "sess_3_3038bbfc",
+    "needs_clarification": false,
+    "options": null,
+    "fee_data": {
+      "message": "Your outstanding fee balance is **₹25,000.00** due by **November 15, 2026**.\n\n**Fee Breakdown (Semester 5, AY 2025-26)**:\n• Total Applicable Fee: ₹75,000.00\n• Paid Amount: ₹50,000.00\n• Scholarship / Concession: ₹10,000.00\n• **Remaining Balance: ₹25,000.00**",
+      "fee_id": 6,
+      "semester": 5,
+      "academic_year": "2025-26",
+      "total_fee": 75000.0,
+      "paid_amount": 50000.0,
+      "scholarship_amount": 10000.0,
+      "pending_amount": 25000.0,
+      "due_date": "2026-11-15"
+    }
+  },
+  "chat_hindi": {
+    "message": "आपके पास कई फीस रिकॉर्ड उपलब्ध हैं। आप किस सेमेस्टर की जांच करना चाहते हैं? (सेमेस्टर 5 (2025-26) या सेमेस्टर 4 (2024-25))",
+    "intent": "PENDING_FEE",
+    "confidence": 0.2576,
+    "detected_language": "hi",
+    "fallback_used": false,
+    "source": "ml",
+    "entities": {
+      "semester": null,
+      "academic_year": null,
+      "fee_type": null,
+      "last_intent": null,
+      "is_hypothetical": false
+    },
+    "session_id": "sess_3_48cb626e",
+    "needs_clarification": true,
+    "options": [
+      {
+        "id": 6,
+        "semester": 5,
+        "academic_year": "2025-26",
+        "fee_type": "Tuition",
+        "pending_amount": 25000.0
+      },
+      {
+        "id": 5,
+        "semester": 4,
+        "academic_year": "2024-25",
+        "fee_type": "Tuition",
+        "pending_amount": 0.0
+      }
+    ],
+    "fee_data": null
+  },
+  "chat_marathi": {
+    "message": "तुमच्या खात्यावर एकापेक्षा जास्त फी नोंदी उपलब्ध आहेत. तुम्हाला कोणत्या सत्राची माहिती हवी आहे? (सत्र 5 (2025-26) किंवा सत्र 4 (2024-25))",
+    "intent": "PENDING_FEE",
+    "confidence": 0.6463,
+    "detected_language": "mr",
+    "fallback_used": false,
+    "source": "ml",
+    "entities": {
+      "semester": null,
+      "academic_year": null,
+      "fee_type": null,
+      "last_intent": null,
+      "is_hypothetical": false
+    },
+    "session_id": "sess_3_986839b3",
+    "needs_clarification": true,
+    "options": [
+      {
+        "id": 6,
+        "semester": 5,
+        "academic_year": "2025-26",
+        "fee_type": "Tuition",
+        "pending_amount": 25000.0
+      },
+      {
+        "id": 5,
+        "semester": 4,
+        "academic_year": "2024-25",
+        "fee_type": "Tuition",
+        "pending_amount": 0.0
+      }
+    ],
+    "fee_data": null
+  },
+  "voice_languages": {
+    "supported_languages": {
+      "en": {
+        "name": "English",
+        "bcp47": "en-IN",
+        "gtts_code": "en",
+        "tld": "com",
+        "label": "English (India)"
+      },
+      "hi": {
+        "name": "Hindi",
+        "bcp47": "hi-IN",
+        "gtts_code": "hi",
+        "tld": "com",
+        "label": "हिंदी (भारत)"
+      },
+      "mr": {
+        "name": "Marathi",
+        "bcp47": "mr-IN",
+        "gtts_code": "mr",
+        "tld": "com",
+        "label": "मराठी (भारत)"
+      }
+    }
+  }
+}

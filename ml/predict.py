@@ -20,6 +20,9 @@ if hasattr(sys.stderr, "reconfigure"):
 import joblib
 import numpy as np
 
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
+
 # Ensure root is on sys.path
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BASE_DIR not in sys.path:

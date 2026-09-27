@@ -12,3 +12,4 @@ pydantic[email]
 scikit-learn
 joblib
 nltk
+gTTS>=2.5.0

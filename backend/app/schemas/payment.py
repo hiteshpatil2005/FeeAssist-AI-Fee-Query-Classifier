@@ -1,7 +1,17 @@
 """FeeAssist AI — Payment Schemas"""
 
 from datetime import datetime, date
-from pydantic import BaseModel
+from typing import Optional
+from pydantic import BaseModel, Field
+
+
+class PaymentCreate(BaseModel):
+    amount: float = Field(..., gt=0, description="Payment amount must be greater than zero")
+    payment_date: Optional[date] = Field(default=None, description="Date payment was made")
+    fee_type: str = Field(default="Tuition", description="Fee category")
+    payment_method: str = Field(default="UPI", description="Payment channel (UPI, Net Banking, Card, Cash)")
+    transaction_id: Optional[str] = Field(default=None, description="External transaction reference ID")
+    status: str = Field(default="completed", description="Payment status (completed, pending, failed)")
 
 
 class PaymentOut(BaseModel):
@@ -10,7 +20,7 @@ class PaymentOut(BaseModel):
     payment_date: date
     fee_type: str
     payment_method: str
-    transaction_id: str | None
+    transaction_id: Optional[str]
     status: str
     created_at: datetime
 

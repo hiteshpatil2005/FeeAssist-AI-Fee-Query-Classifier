@@ -1,0 +1,4 @@
+﻿NAME                 IMAGE                   COMMAND                  SERVICE    CREATED        STATUS                 PORTS
+feeassist_backend    feeassist-ai-backend    "sh -c 'alembic upgrΓÇª"   backend    30 hours ago   Up 3 hours             0.0.0.0:8001->8000/tcp, [::]:8001->8000/tcp
+feeassist_frontend   feeassist-ai-frontend   "docker-entrypoint.sΓÇª"   frontend   30 hours ago   Up 3 hours             0.0.0.0:3000->5173/tcp, [::]:3000->5173/tcp
+feeassist_postgres   postgres:16-alpine      "docker-entrypoint.sΓÇª"   postgres   31 hours ago   Up 3 hours (healthy)   0.0.0.0:5433->5432/tcp, [::]:5433->5432/tcp

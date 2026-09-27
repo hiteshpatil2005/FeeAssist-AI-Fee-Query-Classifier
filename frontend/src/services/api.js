@@ -51,18 +51,36 @@ export const authService = {
 // ── Fee Endpoints ────────────────────────────────────────────────────────────
 export const feesService = {
   getFees: () => api.get('/api/fees'),
+  getFeeById: (id) => api.get(`/api/fees/${id}`),
+  createFee: (data) => api.post('/api/fees', data),
+  updateFee: (id, data) => api.put(`/api/fees/${id}`, data),
+  deleteFee: (id) => api.delete(`/api/fees/${id}`),
   getSummary: () => api.get('/api/fees/summary'),
 }
+export const feeService = feesService
+
 
 // ── Payment Endpoints ────────────────────────────────────────────────────────
 export const paymentsService = {
   getPayments: () => api.get('/api/payments'),
+  createPayment: (data) => api.post('/api/payments', data),
 }
 
 // ── Chat Endpoints ───────────────────────────────────────────────────────────
 export const chatService = {
-  sendMessage: (data) => api.post('/api/chat/message', data),
-  getHistory: () => api.get('/api/chat/history'),
+  sendMessage: (data) => api.post('/api/chat', data),
+  getHistory: (sessionId) => api.get(`/api/chat/history?session_id=${encodeURIComponent(sessionId)}`),
+}
+
+// ── Voice Endpoints ──────────────────────────────────────────────────────────
+export const voiceService = {
+  getLanguages: () => api.get('/api/voice/languages'),
+  getTtsUrl: (text, language = 'en') => {
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+    return `${base}/api/voice/tts?text=${encodeURIComponent(text)}&language=${encodeURIComponent(language)}`
+  },
+  synthesize: (text, language = 'en') =>
+    api.post('/api/voice/tts', { text, language }, { responseType: 'blob' }),
 }
 
 export default api

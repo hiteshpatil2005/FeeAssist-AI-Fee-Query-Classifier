@@ -1,0 +1,36 @@
+﻿  table_name   | count 
+---------------+-------
+ users         |    58
+ student_fees  |    62
+ payments      |    19
+ conversations |   466
+ messages      |  1116
+(5 rows)
+
+ id |      name      |              email              | preferred_language 
+----+----------------+---------------------------------+--------------------
+  3 | Aarav Sharma   | demo@feeassist.ai               | English
+  4 | Pooja Deshmukh | student_1789888147@feeassist.ai | Marathi
+  5 | Tanvi Joshi    | student_1789889966@feeassist.ai | Marathi
+  6 | Tanvi Joshi    | student_1789890400@feeassist.ai | Marathi
+  7 | Alice Johnson  | student_a_212949@feeassist.ai   | English
+(5 rows)
+
+ id | user_id | fee_type | semester | total_fee | paid_amount | scholarship_amount | pending_amount |  due_date  
+----+---------+----------+----------+-----------+-------------+--------------------+----------------+------------
+  5 |       3 | Tuition  |        4 |  70000.00 |    70000.00 |           15000.00 |           0.00 | 2025-04-30
+  6 |       3 | Tuition  |        5 |  75000.00 |    50000.00 |           10000.00 |       25000.00 | 2026-11-15
+  7 |       7 | Tuition  |        6 |  80000.00 |    35000.00 |           10000.00 |       35000.00 | 2026-11-30
+  8 |       7 | Tuition  |        7 |  85000.00 |        0.00 |               0.00 |       85000.00 | 2027-04-15
+  9 |       9 | Tuition  |        6 |  80000.00 |    35000.00 |           10000.00 |       35000.00 | 2026-11-30
+(5 rows)
+
+ id | user_id |  amount  | payment_method |  status   | transaction_id 
+----+---------+----------+----------------+-----------+----------------
+  4 |       3 | 70000.00 | Net Banking    | completed | TXN984210482
+  5 |       3 | 50000.00 | UPI            | completed | TXN192847192
+  6 |      11 | 35000.00 | UPI            | completed | TXN_87D3ABBC
+  7 |      13 | 35000.00 | UPI            | completed | TXN_91F5DE86
+  8 |      15 | 30000.00 | UPI            | completed | TXN_42D13EEE
+(5 rows)
+

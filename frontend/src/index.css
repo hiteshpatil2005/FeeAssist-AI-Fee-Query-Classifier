@@ -129,3 +129,122 @@ button {
 .typing-dot:nth-child(1) { animation-delay: 0s;    }
 .typing-dot:nth-child(2) { animation-delay: 0.2s;  }
 .typing-dot:nth-child(3) { animation-delay: 0.4s;  }
+
+/* ── Lightweight Dynamic Animations ────────────────────────────────────────── */
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(0.5deg);
+  }
+}
+
+.animate-float-slow {
+  animation: floatSlow 6s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 4s ease-in-out infinite;
+}
+
+@keyframes chatSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-chat-slide-up {
+  animation: chatSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes waveBar {
+  0%, 100% { height: 4px; }
+  50%      { height: 14px; }
+}
+
+.animate-wave-1 { animation: waveBar 0.9s ease-in-out infinite 0.1s; }
+.animate-wave-2 { animation: waveBar 0.9s ease-in-out infinite 0.3s; }
+.animate-wave-3 { animation: waveBar 0.9s ease-in-out infinite 0.5s; }
+.animate-wave-4 { animation: waveBar 0.9s ease-in-out infinite 0.2s; }
+
+/* Dynamic 8-bar audio spectrum visualizer */
+@keyframes spectrumBar {
+  0%, 100% { height: 4px; opacity: 0.5; }
+  50%      { height: 22px; opacity: 1; }
+}
+
+.animate-spec-1 { animation: spectrumBar 0.7s ease-in-out infinite 0.05s; }
+.animate-spec-2 { animation: spectrumBar 0.8s ease-in-out infinite 0.2s; }
+.animate-spec-3 { animation: spectrumBar 0.6s ease-in-out infinite 0.35s; }
+.animate-spec-4 { animation: spectrumBar 0.9s ease-in-out infinite 0.15s; }
+.animate-spec-5 { animation: spectrumBar 0.75s ease-in-out infinite 0.4s; }
+.animate-spec-6 { animation: spectrumBar 0.65s ease-in-out infinite 0.25s; }
+.animate-spec-7 { animation: spectrumBar 0.85s ease-in-out infinite 0.1s; }
+.animate-spec-8 { animation: spectrumBar 0.7s ease-in-out infinite 0.3s; }
+
+/* Shimmer effect for active pills and bars */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2.5s infinite;
+}
+
+/* Radar pulse ripple for voice */
+@keyframes ripplePulse {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.animate-ripple {
+  animation: ripplePulse 1.8s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+}
+
+/* Ultra smooth message spring in */
+@keyframes messageIn {
+  0% {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-1px) scale(1.005);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-message-in {
+  animation: messageIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.smooth-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+
+

@@ -6,7 +6,7 @@ Phase 2: Real PostgreSQL authentication + fee/payment APIs.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import auth, chat, nlp
+from app.api import auth, chat, nlp, voice
 from app.api import fees, payments
 
 app = FastAPI(
@@ -30,6 +30,7 @@ app.include_router(fees.router,     prefix="/api/fees",     tags=["Fees"])
 app.include_router(payments.router, prefix="/api/payments", tags=["Payments"])
 app.include_router(chat.router,     prefix="/api/chat",     tags=["Chat"])
 app.include_router(nlp.router,      prefix="/api/nlp",      tags=["NLP"])
+app.include_router(voice.router,    prefix="/api/voice",    tags=["Voice"])
 
 
 # ── Root & Health ─────────────────────────────────────────────────────────────

@@ -17,6 +17,11 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
+    # ── Confidence Routing & Gemini Fallback ──────────────────────────────
+    NLP_CONFIDENCE_THRESHOLD: float = 0.65
+    GEMINI_API_KEY: str | None = None
+    GEMINI_MODEL: str = "gemini-1.5-flash"
+
     class Config:
         env_file = ".env"
         extra = "ignore"
