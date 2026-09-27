@@ -18,6 +18,7 @@ class Payment(Base):
     payment_method: Mapped[str] = mapped_column(String(50), nullable=False)     # e.g. "UPI", "Bank Transfer"
     transaction_id: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="completed")
+    notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

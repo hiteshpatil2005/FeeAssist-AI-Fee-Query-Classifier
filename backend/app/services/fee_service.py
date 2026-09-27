@@ -15,7 +15,8 @@ Strict separation of concerns:
 """
 
 from typing import Dict, Any, List, Optional, Tuple
-from datetime import date
+from datetime import date, timedelta
+import uuid
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
@@ -657,6 +658,162 @@ class FeeService:
         }
 
     @classmethod
+    def handle_record_payment(
+        cls,
+        db: Session,
+        user_id: int,
+        entities: Dict[str, Any],
+        fee: Optional[StudentFee],
+        lang: str = "en",
+    ) -> Dict[str, Any]:
+        """
+        Conversational Payment Auto-Recording:
+        Detects payment declaration from user, deterministically updates StudentFee in PostgreSQL,
+        inserts a completed Payment transaction, appends an audit entry to StudentFee.notes,
+        and returns a localized confirmation with updated balances and next-installment guidance.
+        """
+        if not fee:
+            resolved_fee, disambig_prompt, disambig_options = cls.resolve_target_fee(
+                db, user_id, entities, lang=lang
+            )
+            if not resolved_fee:
+                return {
+                    "message": disambig_prompt or "Please specify the semester for this payment.",
+                    "needs_clarification": disambig_options is not None,
+                    "options": disambig_options,
+                }
+            fee = resolved_fee
+
+        amount_to_pay = float(entities.get("amount") or 0.0)
+        if amount_to_pay <= 0.0:
+            if lang == "mr":
+                msg = "कृपया तुम्ही भरलेली अचूक रक्कम नमूद करा (उदा. 'मी ₹१०,००० भरले')."
+            elif lang == "hi":
+                msg = "कृपया आपके द्वारा भुगतान की गई सही राशि बताएं (उदा. 'मैंने ₹१०,००० जमा किए')।"
+            else:
+                msg = "Please specify the exact amount you paid (e.g. 'I paid ₹10,000 for semester 5')."
+            return {"message": msg, "recorded": False}
+
+        old_paid = float(fee.paid_amount)
+        total = float(fee.total_fee)
+        sch = float(fee.scholarship_amount)
+        new_paid = round(old_paid + amount_to_pay, 2)
+        new_pending = max(0.0, round(total - new_paid - sch, 2))
+
+        # Generate unique transaction ID
+        txn_id = f"CHAT-{uuid.uuid4().hex[:8].upper()}"
+        pay_date = date.today()
+        pay_method = entities.get("payment_method") or "UPI / Online"
+        fee_cat = fee.fee_type or "Tuition"
+
+        # 1. Create Payment transaction record in PostgreSQL
+        payment_notes = (
+            f"Auto-recorded via chat: ₹{amount_to_pay:,.2f} for Semester {fee.semester} "
+            f"({fee.academic_year}) on {pay_date.isoformat()}."
+        )
+        new_payment = Payment(
+            user_id=user_id,
+            amount=amount_to_pay,
+            payment_date=pay_date,
+            fee_type=fee_cat,
+            payment_method=pay_method,
+            transaction_id=txn_id,
+            status="completed",
+            notes=payment_notes,
+        )
+        db.add(new_payment)
+
+        # 2. Update StudentFee balances and audit trail in notes
+        fee.paid_amount = new_paid
+        fee.pending_amount = new_pending
+
+        audit_entry = f"[{pay_date.isoformat()}] Paid ₹{amount_to_pay:,.2f} via chat (Txn: {txn_id}). Remaining: ₹{new_pending:,.2f}."
+        if fee.notes:
+            updated_notes = f"{fee.notes} | {audit_entry}"
+        else:
+            updated_notes = audit_entry
+
+        # Keep notes safely within VARCHAR(500) limit
+        if len(updated_notes) > 480:
+            updated_notes = updated_notes[-480:]
+        fee.notes = updated_notes
+
+        db.commit()
+        db.refresh(fee)
+
+        dt_formatted = format_localized_date(pay_date, lang)
+
+        # 3. Formulate localized response
+        if lang == "mr":
+            if new_pending <= 0:
+                follow_up = "अभिनंदन! या सत्राची तुमची संपूर्ण फी आता **पूर्णपणे चुकता (100% Paid)** झाली आहे."
+            else:
+                p1 = round(new_pending / 2, 2)
+                follow_up = (
+                    f"उर्वरित **₹{new_pending:,.2f}** शिल्लक रकमेसाठी, तुम्ही प्रत्येकी **₹{p1:,.2f}** चे "
+                    f"२ हप्ते करू शकता."
+                )
+            message = (
+                f"**सत्र {fee.semester} ({fee.academic_year})** साठी **₹{amount_to_pay:,.2f}** चा भरणा यशस्वीरीत्या नोंदवला गेला आहे!\n\n"
+                f"• **व्यवहार आयडी (Txn ID):** `{txn_id}`\n"
+                f"• **तारीख:** {dt_formatted}\n"
+                f"• **माध्यम:** {pay_method}\n"
+                f"• **एकूण भरलेली रक्कम:** ₹{new_paid:,.2f}\n"
+                f"• **नवीन शिल्लक बाकी:** ₹{new_pending:,.2f}\n"
+                f"• **नोंदवलेली टीप (Saved Note):** \"{audit_entry}\"\n\n"
+                f"{follow_up}"
+            )
+        elif lang == "hi":
+            if new_pending <= 0:
+                follow_up = "बधाई हो! इस सेमेस्टर की आपकी कुल फीस अब **पूर्णतः चुकता (100% Paid)** हो चुकी है।"
+            else:
+                p1 = round(new_pending / 2, 2)
+                follow_up = (
+                    f"शेष **₹{new_pending:,.2f}** की बकाया राशि के लिए, आप प्रत्येक **₹{p1:,.2f}** की "
+                    f"२ किस्तों में भुगतान कर सकते हैं।"
+                )
+            message = (
+                f"**सेमेस्टर {fee.semester} ({fee.academic_year})** के लिए **₹{amount_to_pay:,.2f}** का भुगतान सफलतापूर्वक दर्ज कर लिया गया है!\n\n"
+                f"• **लेनदेन आईडी (Txn ID):** `{txn_id}`\n"
+                f"• **दिनांक:** {dt_formatted}\n"
+                f"• **माध्यम:** {pay_method}\n"
+                f"• **कुल जमा राशि:** ₹{new_paid:,.2f}\n"
+                f"• **अद्यतन शेष बकाया:** ₹{new_pending:,.2f}\n"
+                f"• **दर्ज टिप्पणी (Saved Note):** \"{audit_entry}\"\n\n"
+                f"{follow_up}"
+            )
+        else:
+            if new_pending <= 0:
+                follow_up = "Congratulations! Your fee for this semester is now **settled in full (100% Paid)**."
+            else:
+                p1 = round(new_pending / 2, 2)
+                follow_up = (
+                    f"For your remaining balance of **₹{new_pending:,.2f}**, a recommended option is "
+                    f"2 installments of **₹{p1:,.2f}** each."
+                )
+            message = (
+                f"Payment of **₹{amount_to_pay:,.2f}** has been successfully recorded for "
+                f"**Semester {fee.semester} ({fee.academic_year})**!\n\n"
+                f"• **Transaction ID:** `{txn_id}`\n"
+                f"• **Date:** {dt_formatted}\n"
+                f"• **Payment Mode:** {pay_method}\n"
+                f"• **Total Paid to Date:** ₹{new_paid:,.2f}\n"
+                f"• **Updated Remaining Balance:** ₹{new_pending:,.2f}\n"
+                f"• **Audit Note Saved:** \"{audit_entry}\"\n\n"
+                f"{follow_up}"
+            )
+
+        return {
+            "message": message,
+            "recorded": True,
+            "transaction_id": txn_id,
+            "paid_amount": new_paid,
+            "pending_amount": new_pending,
+            "payment_notes": payment_notes,
+            "fee_notes": fee.notes,
+        }
+
+    @classmethod
     def handle_installment(
         cls,
         db: Session,
@@ -665,84 +822,293 @@ class FeeService:
         fee: StudentFee,
         lang: str = "en",
     ) -> Dict[str, Any]:
-        """Calculates deterministic installment breakdown based on actual pending amount."""
+        """
+        Deep Reasoning Installment & Notes Synthesizer:
+        1. Reads fee.notes and payment.notes for past installments, agreements, and payment remarks.
+        2. Computes count and volume of completed installments.
+        3. If balance remains, formulates an intelligent segregation plan with suggested dates.
+        4. If notes were empty, explains that standard segregation applies and recommends a schedule.
+        """
         pending = float(fee.pending_amount)
+        paid = float(fee.paid_amount)
+        total = float(fee.total_fee)
+
+        # Retrieve past payment history for context
+        all_payments = FeeService.get_payments(db, user_id)
+        # Filter payments relevant to this semester or fee type
+        payments_done = [p for p in all_payments if p.status == "completed"]
+        completed_count = len(payments_done)
+        total_installments_paid = sum(float(p.amount) for p in payments_done)
+
+        today = date.today()
+        d30 = today + timedelta(days=30)
+        d60 = today + timedelta(days=60)
+        d90 = today + timedelta(days=90)
+
+        d30_str = format_localized_date(d30, lang)
+        d60_str = format_localized_date(d60, lang)
+        d90_str = format_localized_date(d90, lang)
+
+        # Check if fee has recorded notes
+        has_fee_notes = bool(fee.notes and fee.notes.strip())
+        notes_text = fee.notes.strip() if has_fee_notes else ""
+
+        # Check if payments have notes
+        pmt_notes_list = [f"• {format_localized_date(p.payment_date, lang)}: ₹{float(p.amount):,.2f} — {p.notes}" for p in payments_done if p.notes]
+
         if pending <= 0:
             if lang == "mr":
-                msg = f"सत्र {fee.semester} ची फी आधीच पूर्ण भरलेली आहे. हप्ता योजनेची आवश्यकता नाही!"
+                msg = (
+                    f"**सत्र {fee.semester} ({fee.academic_year})** ची संपूर्ण फी आधीच भरलेली आहे!\n\n"
+                    f"• एकूण फी: ₹{total:,.2f}\n"
+                    f"• भरलेली रक्कम: ₹{paid:,.2f}\n"
+                    f"• पूर्ण झालेले हप्ते: {completed_count} व्यवहार (एकूण ₹{total_installments_paid:,.2f})\n\n"
+                    f"कोणतीही रक्कम शिल्लक नसल्याने नवीन हप्ता योजनेची आवश्यकता नाही."
+                )
             elif lang == "hi":
-                msg = f"सेमेस्टर {fee.semester} की फीस पहले से ही पूरी जमा है। किसी किस्त की आवश्यकता नहीं है!"
+                msg = (
+                    f"**सेमेस्टर {fee.semester} ({fee.academic_year})** की कुल फीस पहले ही पूरी जमा हो चुकी है!\n\n"
+                    f"• कुल फीस: ₹{total:,.2f}\n"
+                    f"• जमा राशि: ₹{paid:,.2f}\n"
+                    f"• पूर्ण किस्तें: {completed_count} लेनदेन (कुल ₹{total_installments_paid:,.2f})\n\n"
+                    f"कोई बकाया न होने के कारण नई किस्त योजना की आवश्यकता नहीं है।"
+                )
             else:
-                msg = f"Your fees for Semester {fee.semester} are already fully settled. No installment plan is needed!"
-            return {"message": msg, "pending_amount": 0.0}
+                msg = (
+                    f"Your fees for **Semester {fee.semester} ({fee.academic_year})** are already fully paid!\n\n"
+                    f"• Total Fee: ₹{total:,.2f}\n"
+                    f"• Amount Paid: ₹{paid:,.2f}\n"
+                    f"• Completed Installments: {completed_count} payments (totaling ₹{total_installments_paid:,.2f})\n\n"
+                    f"No further installment plan is required since there is zero outstanding balance."
+                )
+            return {"message": msg, "pending_amount": 0.0, "completed_installments": completed_count}
 
+        # User requested specific count
         requested_count = entities.get("installment_count")
-        if requested_count and requested_count > 1:
-            per_inst = round(pending / requested_count, 2)
-            if lang == "mr":
-                plan_text = (
-                    f"जर तुम्ही तुमची शिल्लक **₹{pending:,.2f}** रक्कम **{requested_count} हप्त्यांमध्ये** भरू इच्छित असाल, "
-                    f"तर प्रत्येक हप्ता अंदाजे **₹{per_inst:,.2f}** असेल."
-                )
-            elif lang == "hi":
-                plan_text = (
-                    f"यदि आप अपनी बकाया **₹{pending:,.2f}** राशि को **{requested_count} किस्तों** में जमा करते हैं, "
-                    f"तो प्रत्येक किस्त लगभग **₹{per_inst:,.2f}** होगी।"
-                )
-            else:
-                plan_text = (
-                    f"If you choose to pay your remaining balance of **₹{pending:,.2f}** in **{requested_count} installments**, "
-                    f"each installment will be approximately **₹{per_inst:,.2f}**."
-                )
-        else:
-            inst_2 = round(pending / 2, 2)
-            inst_3 = round(pending / 3, 2)
-            if lang == "mr":
-                plan_text = (
-                    f"तुमच्या **₹{pending:,.2f}** शिल्लक रकमेवर आधारित मानक हप्ता पर्याय:\n\n"
-                    f"• **२ हप्ते**: प्रत्येकी ₹{inst_2:,.2f}\n"
-                    f"• **३ हप्ते**: प्रत्येकी ₹{inst_3:,.2f}"
-                )
-            elif lang == "hi":
-                plan_text = (
-                    f"आपकी **₹{pending:,.2f}** की बकाया राशि के आधार पर मानक किस्त विकल्प:\n\n"
-                    f"• **२ किस्तें**: ₹{inst_2:,.2f} प्रत्येक\n"
-                    f"• **३ किस्तें**: ₹{inst_3:,.2f} प्रत्येक"
-                )
-            else:
-                plan_text = (
-                    f"Based on your outstanding balance of **₹{pending:,.2f}**, here are standard installment options:\n\n"
-                    f"• **2 Installments**: ₹{inst_2:,.2f} each\n"
-                    f"• **3 Installments**: ₹{inst_3:,.2f} each"
-                )
 
         if lang == "mr":
-            message = (
-                f"**हप्ता योजना पर्याय (सत्र {fee.semester}, शैक्षणिक वर्ष {fee.academic_year})**:\n\n"
-                f"{plan_text}\n\n"
-                f"हप्ता योजनेचा लाभ घेण्यासाठी महाविद्यालयीन लेखा विभागात हमीपत्र (undertaking form) सादर करा."
-            )
+            sections = []
+            sections.append(f"**हप्ता विश्लेषण व विभाजन (सत्र {fee.semester}, {fee.academic_year})**\n")
+
+            # 1. Past Installments & Notes Summary
+            if completed_count > 0:
+                sections.append(
+                    f"**यापूर्वी झालेले हप्ते (Completed Installments):**\n"
+                    f"• आतापर्यंत **{completed_count} हप्ते/व्यवहार** नोंदवले गेले आहेत (एकूण भरणा: **₹{total_installments_paid:,.2f}**).\n"
+                    f"• सध्या शिल्लक रक्कम: **₹{pending:,.2f}**"
+                )
+            else:
+                sections.append(
+                    f"**हप्ता स्थिती:**\n"
+                    f"• आतापर्यंत कोणताही हप्ता भरलेला नाही.\n"
+                    f"• एकूण शिल्लक देय रक्कम: **₹{pending:,.2f}**"
+                )
+
+            if has_fee_notes:
+                sections.append(f"**नोंदवलेल्या नोंदी (Your Fee Notes):**\n> *\"{notes_text}\"*")
+            if pmt_notes_list:
+                sections.append("**व्यवहारांमधील नोंदी (Payment Remarks):**\n" + "\n".join(pmt_notes_list[:3]))
+
+            # 2. Intelligent Segregation Plan
+            sections.append("**शिफारस केलेले योग्य विभाजन (Recommended Segregation Plan):**")
+            if requested_count and requested_count > 1:
+                per_part = round(pending / requested_count, 2)
+                plan_lines = []
+                for i in range(1, requested_count + 1):
+                    due_d = today + timedelta(days=30 * i)
+                    plan_lines.append(f"• **हप्ता {i}:** ₹{per_part:,.2f} (अंदाजे तारीख: {format_localized_date(due_d, lang)})")
+                sections.append(f"तुमच्या विनंतीनुसार **{requested_count} समान हप्त्यांमध्ये** विभाजन:\n" + "\n".join(plan_lines))
+            else:
+                p2_1 = round(pending / 2, 2)
+                p2_2 = round(pending - p2_1, 2)
+                p3_1 = round(pending / 3, 2)
+                p3_2 = round(pending / 3, 2)
+                p3_3 = round(pending - p3_1 - p3_2, 2)
+
+                sections.append(
+                    f"**पर्याय १ — २ भागांमध्ये विभाजन (50% - 50%):**\n"
+                    f"  १. पहिला हप्ता: **₹{p2_1:,.2f}** (देय: {d30_str})\n"
+                    f"  २. दुसरा हप्ता: **₹{p2_2:,.2f}** (देय: {d60_str})\n\n"
+                    f"**पर्याय २ — ३ भागांमध्ये सुलभ मासिक विभाजन:**\n"
+                    f"  १. पहिला हप्ता: **₹{p3_1:,.2f}** (देय: {d30_str})\n"
+                    f"  २. दुसरा हप्ता: **₹{p3_2:,.2f}** (देय: {d60_str})\n"
+                    f"  ३. तिसरा हप्ता: **₹{p3_3:,.2f}** (देय: {d90_str})"
+                )
+
+            sections.append("हप्ता सुविधेची अधिकृत मंजुरी मिळवण्यासाठी लेखा विभागात हमीपत्र (undertaking) जमा करा.")
+            message = "\n\n".join(sections)
+
         elif lang == "hi":
-            message = (
-                f"**किस्त योजना विकल्प (सेमेस्टर {fee.semester}, शैक्षणिक वर्ष {fee.academic_year})**:\n\n"
-                f"{plan_text}\n\n"
-                f"किस्त योजना की अनुमति के लिए कॉलेज के लेखा अनुभाग में वचन पत्र जमा करें।"
-            )
+            sections = []
+            sections.append(f"**किस्त विश्लेषण एवं विभाजन योजना (सेमेस्टर {fee.semester}, {fee.academic_year})**\n")
+
+            if completed_count > 0:
+                sections.append(
+                    f"**पूर्व में किए गए भुगतान (Completed Installments):**\n"
+                    f"• अब तक **{completed_count} किस्तें/लेनदेन** दर्ज हैं (कुल भुगतान: **₹{total_installments_paid:,.2f}**)।\n"
+                    f"• वर्तमान शेष बकाया: **₹{pending:,.2f}**"
+                )
+            else:
+                sections.append(
+                    f"**किस्त स्थिति:**\n"
+                    f"• अभी तक कोई किस्त जमा नहीं हुई है।\n"
+                    f"• कुल बकाया राशि: **₹{pending:,.2f}**"
+                )
+
+            if has_fee_notes:
+                sections.append(f"**आपके खाते में दर्ज टिप्पणियां (Your Fee Notes):**\n> *\"{notes_text}\"*")
+            if pmt_notes_list:
+                sections.append("**भुगतान लेनदेन की टिप्पणियां (Payment Remarks):**\n" + "\n".join(pmt_notes_list[:3]))
+
+            sections.append("**उचित किस्त विभाजन योजना (Recommended Segregation Plan):**")
+            if requested_count and requested_count > 1:
+                per_part = round(pending / requested_count, 2)
+                plan_lines = []
+                for i in range(1, requested_count + 1):
+                    due_d = today + timedelta(days=30 * i)
+                    plan_lines.append(f"• **किस्त {i}:** ₹{per_part:,.2f} (अनुशंसित तिथि: {format_localized_date(due_d, lang)})")
+                sections.append(f"आपके अनुरोध अनुसार **{requested_count} समान किस्तों** में विभाजन:\n" + "\n".join(plan_lines))
+            else:
+                p2_1 = round(pending / 2, 2)
+                p2_2 = round(pending - p2_1, 2)
+                p3_1 = round(pending / 3, 2)
+                p3_2 = round(pending / 3, 2)
+                p3_3 = round(pending - p3_1 - p3_2, 2)
+
+                sections.append(
+                    f"**विकल्प १ — २ भागों में विभाजन (50% - 50%):**\n"
+                    f"  १. पहली किस्त: **₹{p2_1:,.2f}** (अंतिम तिथि: {d30_str})\n"
+                    f"  २. दूसरी किस्त: **₹{p2_2:,.2f}** (अंतिम तिथि: {d60_str})\n\n"
+                    f"**विकल्प २ — ३ भागों में सुगम मासिक विभाजन:**\n"
+                    f"  १. पहली किस्त: **₹{p3_1:,.2f}** (अंतिम तिथि: {d30_str})\n"
+                    f"  २. दूसरी किस्त: **₹{p3_2:,.2f}** (अंतिम तिथि: {d60_str})\n"
+                    f"  ३. तीसरी किस्त: **₹{p3_3:,.2f}** (अंतिम तिथि: {d90_str})"
+                )
+
+            sections.append("किस्त सुविधा की आधिकारिक अनुमति हेतु कॉलेज के लेखा विभाग में आवेदन जमा करें।")
+            message = "\n\n".join(sections)
+
         else:
-            message = (
-                f"**Installment Plan Options (Semester {fee.semester}, AY {fee.academic_year})**:\n\n"
-                f"{plan_text}\n\n"
-                f"To opt for an installment schedule, submit an installment undertaking form to the college accounts section."
-            )
+            sections = []
+            sections.append(f"**Installment Analysis & Segregation Plan (Semester {fee.semester}, {fee.academic_year})**\n")
+
+            if completed_count > 0:
+                sections.append(
+                    f"**Previous Installments on Record:**\n"
+                    f"• **{completed_count} installment payments** completed to date (Total paid: **₹{total_installments_paid:,.2f}**).\n"
+                    f"• Remaining outstanding balance: **₹{pending:,.2f}**"
+                )
+            else:
+                sections.append(
+                    f"**Installment Status:**\n"
+                    f"• No installment payments have been made yet.\n"
+                    f"• Total outstanding balance: **₹{pending:,.2f}**"
+                )
+
+            if has_fee_notes:
+                sections.append(f"**Recorded Fee Notes & Undertakings:**\n> *\"{notes_text}\"*")
+            if pmt_notes_list:
+                sections.append("**Payment Transaction Remarks:**\n" + "\n".join(pmt_notes_list[:3]))
+
+            sections.append("**Recommended Segregation Schedule:**")
+            if requested_count and requested_count > 1:
+                per_part = round(pending / requested_count, 2)
+                plan_lines = []
+                for i in range(1, requested_count + 1):
+                    due_d = today + timedelta(days=30 * i)
+                    plan_lines.append(f"• **Installment {i}:** ₹{per_part:,.2f} (Target date: {format_localized_date(due_d, lang)})")
+                sections.append(f"Custom plan divided into **{requested_count} equal installments**:\n" + "\n".join(plan_lines))
+            else:
+                p2_1 = round(pending / 2, 2)
+                p2_2 = round(pending - p2_1, 2)
+                p3_1 = round(pending / 3, 2)
+                p3_2 = round(pending / 3, 2)
+                p3_3 = round(pending - p3_1 - p3_2, 2)
+
+                sections.append(
+                    f"**Option 1 — 2-Part Balanced Segregation (50% / 50%):**\n"
+                    f"  1. Installment 1: **₹{p2_1:,.2f}** (Target: {d30_str})\n"
+                    f"  2. Installment 2: **₹{p2_2:,.2f}** (Target: {d60_str})\n\n"
+                    f"**Option 2 — 3-Part Monthly Segregation:**\n"
+                    f"  1. Installment 1: **₹{p3_1:,.2f}** (Target: {d30_str})\n"
+                    f"  2. Installment 2: **₹{p3_2:,.2f}** (Target: {d60_str})\n"
+                    f"  3. Installment 3: **₹{p3_3:,.2f}** (Target: {d90_str})"
+                )
+
+            sections.append("To formally adopt an installment schedule, submit an undertaking form to the college accounts section.")
+            message = "\n\n".join(sections)
 
         return {
             "message": message,
             "pending_amount": pending,
+            "completed_installments": completed_count,
+            "fee_notes": fee.notes,
             "calculated_installments": {
                 "two_parts": round(pending / 2, 2),
                 "three_parts": round(pending / 3, 2),
             },
         }
+
+    @classmethod
+    def handle_notes_query(
+        cls,
+        db: Session,
+        user_id: int,
+        entities: Dict[str, Any],
+        fee: Optional[StudentFee],
+        lang: str = "en",
+    ) -> Dict[str, Any]:
+        """Summarizes all custom notes, promises, and remarks recorded on fees and payments."""
+        if not fee:
+            fees = FeeService.get_student_fees(db, user_id)
+            if not fees:
+                msg = "No fee records found on your account."
+                return {"message": msg, "notes": []}
+            fee = fees[0]
+
+        payments = FeeService.get_payments(db, user_id)
+        pmt_notes = [p for p in payments if p.notes]
+
+        has_fee_notes = bool(fee.notes and fee.notes.strip())
+
+        if not has_fee_notes and not pmt_notes:
+            if lang == "mr":
+                msg = f"सत्र {fee.semester} साठी तुमच्या रेकॉर्डमध्ये सध्या कोणतीही विशेष नोंद (Notes) जतन केलेली नाही."
+            elif lang == "hi":
+                msg = f"सेमेस्टर {fee.semester} के लिए आपके रिकॉर्ड में वर्तमान में कोई विशेष टिप्पणी (Notes) दर्ज नहीं है।"
+            else:
+                msg = f"There are currently no custom notes or remarks recorded for Semester {fee.semester}."
+            return {"message": msg, "has_notes": False}
+
+        if lang == "mr":
+            lines = [f"**सत्र {fee.semester} ({fee.academic_year}) मधील जतन केलेल्या नोंदी (Notes):**\n"]
+            if has_fee_notes:
+                lines.append(f"• **फी रेकॉर्डमधील नोंद:**\n  > \"{fee.notes}\"\n")
+            if pmt_notes:
+                lines.append("• **पेमेंट व्यवहारांमधील नोंदी:**")
+                for p in pmt_notes[:5]:
+                    dt_s = format_localized_date(p.payment_date, lang)
+                    lines.append(f"  - [{dt_s}] ₹{float(p.amount):,.2f}: {p.notes}")
+        elif lang == "hi":
+            lines = [f"**सेमेस्टर {fee.semester} ({fee.academic_year}) में दर्ज टिप्पणियां (Notes):**\n"]
+            if has_fee_notes:
+                lines.append(f"• **फीस रिकॉर्ड की टिप्पणी:**\n  > \"{fee.notes}\"\n")
+            if pmt_notes:
+                lines.append("• **भुगतान लेनदेन की टिप्पणियां:**")
+                for p in pmt_notes[:5]:
+                    dt_s = format_localized_date(p.payment_date, lang)
+                    lines.append(f"  - [{dt_s}] ₹{float(p.amount):,.2f}: {p.notes}")
+        else:
+            lines = [f"**Recorded Notes & Remarks for Semester {fee.semester} ({fee.academic_year}):**\n"]
+            if has_fee_notes:
+                lines.append(f"• **Fee Record Note:**\n  > \"{fee.notes}\"\n")
+            if pmt_notes:
+                lines.append("• **Payment Transaction Remarks:**")
+                for p in pmt_notes[:5]:
+                    dt_s = format_localized_date(p.payment_date, lang)
+                    lines.append(f"  - [{dt_s}] ₹{float(p.amount):,.2f}: {p.notes}")
+
+        return {"message": "\n".join(lines), "has_notes": True, "fee_notes": fee.notes}
 
     @classmethod
     def handle_refund(

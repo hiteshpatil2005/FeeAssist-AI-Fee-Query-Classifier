@@ -233,6 +233,41 @@ def is_hypothetical_query(text: str) -> bool:
     return any(ind in low for ind in hypothetical_indicators)
 
 
+def is_payment_declaration(text: str) -> bool:
+    """
+    Checks if user is stating an actual payment they made:
+    e.g. "I have paid 10000 of this semester", "I paid 5000 yesterday",
+         "मैंने 10000 रुपये जमा किए", "मी सेमिस्टर 5 चे 10000 भरले", "paid 15000 online"
+    """
+    if is_hypothetical_query(text):
+        return False
+
+    amount = extract_amount(text)
+    if not amount or amount <= 0:
+        return False
+
+    low = text.lower()
+    declaration_indicators = [
+        "i have paid", "i paid", "have paid", "just paid", "already paid",
+        "paid fee", "paid fees", "paid amount", "made payment", "payment done",
+        "record payment", "update payment", "paid of this semester", "paid for semester",
+        "paid towards", "paid for",
+        "जमा किए", "जमा कर दिए", "जमा किया", "भर दिए", "भर दिया", "भुगतान किया",
+        "पे कर दिया", "मैंने जमा किए", "मैंने दिए", "भर चुका हूँ",
+        "भरले", "भरले आहेत", "जमा केले", "पैसे भरले", "दिले आहेत", "भरणा केला"
+    ]
+
+    # Check direct phrases
+    if any(ind in low for ind in declaration_indicators):
+        return True
+
+    # Check "paid" with amount in short messages like "paid 10000", "10000 paid"
+    if re.search(r'\bpaid\b', low) and not any(q in low for q in ["how much", "when", "what if", "will", "did i"]):
+        return True
+
+    return False
+
+
 def extract_entities(text: str) -> Dict[str, Any]:
     """
     Unified entity extraction for FeeAssist AI.
@@ -248,4 +283,6 @@ def extract_entities(text: str) -> Dict[str, Any]:
         "date": extract_date(text),
         "installment_count": extract_installment_count(text),
         "is_hypothetical": is_hypothetical_query(text),
+        "is_payment_declaration": is_payment_declaration(text),
     }
+

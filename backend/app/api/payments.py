@@ -69,6 +69,7 @@ def create_payment(
         payment_method=payload.payment_method,
         transaction_id=payload.transaction_id,
         status=payload.status,
+        notes=payload.notes,
     )
     db.add(payment)
     db.commit()

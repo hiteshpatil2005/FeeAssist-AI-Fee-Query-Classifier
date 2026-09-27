@@ -138,6 +138,28 @@ async def chat_message(
     if is_hypo:
         predicted_intent = "PENDING_FEE"
 
+    # Check if query is a conversational payment declaration: "I have paid 10000 of this semester"
+    is_payment_decl = bool(
+        merged_entities.get("is_payment_declaration")
+        and merged_entities.get("amount") is not None
+        and float(merged_entities.get("amount") or 0) > 0
+    )
+    if is_payment_decl:
+        predicted_intent = "RECORD_PAYMENT"
+
+    # Check if query is asking about recorded notes
+    is_notes_query = any(k in raw_query.lower() for k in ["note", "notes", "नोंद", "नोंदी", "नोट्स", "टिप्पणी", "रिमार्क", "remarks"])
+    if is_notes_query and not is_payment_decl:
+        predicted_intent = "NOTES_QUERY"
+
+    # Check if query is asking about installments, division, or segregation
+    installment_keywords = [
+        "installment", "installments", "segregation", "segregate", "divide", "parts", "part payment", "emis", "emi",
+        "किस्त", "किश्त", "किस्तों", "किश्तों", "विभाजन", "हप्ता", "हप्ते", "हप्त्यांमध्ये", "विभागणी", "तुकडे"
+    ]
+    if any(k in raw_query.lower() for k in installment_keywords) and not is_payment_decl and predicted_intent != "NOTES_QUERY":
+        predicted_intent = "INSTALLMENT"
+
     needs_clarification = False
     options = None
     fee_data = None
@@ -147,10 +169,10 @@ async def chat_message(
 
     # 8. Controlled Secondary Fallback (Gemini API)
     # Triggered when confidence < NLP_CONFIDENCE_THRESHOLD or intent is OTHER_FEE_QUERY (complex/unclassified)
-    # Hypothetical payment calculations are excluded because they require deterministic arithmetic.
+    # Hypothetical payment calculations and actual payment declarations are excluded because they require deterministic arithmetic and DB updates.
     should_fallback = (
         confidence < settings.NLP_CONFIDENCE_THRESHOLD or predicted_intent == "OTHER_FEE_QUERY"
-    ) and not is_hypo
+    ) and not is_hypo and not is_payment_decl
 
     gemini_succeeded = False
     if should_fallback:
@@ -173,6 +195,7 @@ async def chat_message(
                         "status": "paid" if float(f.pending_amount) <= 0 else "pending",
                         "semester": f.semester,
                         "academic_year": f.academic_year,
+                        "notes": f.notes or "None",
                     }
                     for f in student_fees
                 ],
@@ -183,6 +206,7 @@ async def chat_message(
                         "payment_mode": p.payment_method,
                         "payment_date": str(p.payment_date),
                         "status": p.status,
+                        "notes": p.notes or "None",
                     }
                     for p in student_payments[:5]
                 ],
@@ -214,6 +238,8 @@ async def chat_message(
             "DUE_DATE",
             "SCHOLARSHIP",
             "INSTALLMENT",
+            "RECORD_PAYMENT",
+            "NOTES_QUERY",
         ]
 
         target_fee, disambig_prompt, disambig_options = FeeService.resolve_target_fee(
@@ -230,7 +256,17 @@ async def chat_message(
             response_text = disambig_prompt
         else:
             # Route to deterministic FeeService handler based on predicted intent
-            if predicted_intent == "PENDING_FEE":
+            if predicted_intent == "RECORD_PAYMENT":
+                res = FeeService.handle_record_payment(db, current_user.id, merged_entities, target_fee, lang=target_lang)
+                response_text = res["message"]
+                fee_data = res
+
+            elif predicted_intent == "NOTES_QUERY":
+                res = FeeService.handle_notes_query(db, current_user.id, merged_entities, target_fee, lang=target_lang)
+                response_text = res["message"]
+                fee_data = res
+
+            elif predicted_intent == "PENDING_FEE":
                 res = FeeService.handle_pending_fee(db, current_user.id, merged_entities, target_fee, lang=target_lang)
                 response_text = res["message"]
                 fee_data = res
